@@ -1,22 +1,38 @@
+# frozen_string_literal: true
 module Calculator
-  class StringCalculator
+  module StringCalculator
+    NUMBER_TOO_BIG = 1000
 
-    def self.add(numbers)
-      return 0 if numbers.empty?
-    
-      delimiter = ",|\n"
-      if numbers.start_with?("//")
-        delimiter = Regexp.escape(numbers[2])
-        numbers = numbers.split("\n", 2).last
+    class << self
+      def add(input)
+        return 0 if input.strip.empty?
+        numbers = extract_numbers(input)
+        validate_no_negatives!(numbers)
+        numbers.reject { |n| n >= NUMBER_TOO_BIG }.sum
       end
-    
-      nums = numbers.split(/#{delimiter}/).map(&:to_i)
-      negatives = nums.select { |n| n < 0 }
-    
-      raise "negative numbers not allowed #{negatives.join(',')}" if negatives.any?
-    
-      nums.sum
-    end
 
+      private
+
+      def extract_numbers(input)
+        delimiter, numbers_str = parse_input(input)
+        numbers_str.split(delimiter).map(&:to_i)
+      end
+
+      def parse_input(input)
+        if input.start_with?("//")
+          custom_delimiter, numbers_part = input.match(%r{//(.+)\n(.*)}m).captures
+          [Regexp.escape(custom_delimiter), numbers_part]
+        else
+          [/[,\n]/, input]
+        end
+      end
+
+      def validate_no_negatives!(numbers)
+        negatives = numbers.select(&:negative?)
+        return if negatives.empty?
+
+        raise "negative numbers not allowed #{negatives.join(',')}"
+      end
+    end
   end
 end
